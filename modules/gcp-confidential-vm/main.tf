@@ -1,4 +1,3 @@
-# Static external IP address
 resource "google_compute_address" "this" {
   name    = var.vm_name
   project = var.project
@@ -7,7 +6,6 @@ resource "google_compute_address" "this" {
   address_type = "EXTERNAL"
 }
 
-# Persistent data disk
 resource "google_compute_disk" "data" {
   name    = "${var.vm_name}-${var.data_disk_device_name}"
   project = var.project
@@ -27,12 +25,15 @@ resource "google_compute_disk" "data" {
   }
 }
 
-# Confidential VM instance with Intel TDX
 resource "google_compute_instance" "cvm" {
-  name         = var.vm_name
-  project      = var.project
-  zone         = var.zone
-  machine_type = var.machine_type
+  name                      = var.vm_name
+  project                   = var.project
+  zone                      = var.zone
+  machine_type              = var.machine_type
+  allow_stopping_for_update = true
+  enable_display            = var.enable_display
+  tags                      = [var.vm_name]
+  metadata                  = var.metadata
 
   # TDX VMs don't support live migration
   scheduling {
@@ -40,22 +41,16 @@ resource "google_compute_instance" "cvm" {
     automatic_restart   = true
   }
 
-  # Intel TDX confidential computing configuration
   confidential_instance_config {
     confidential_instance_type = "TDX"
   }
 
-  # Shielded VM settings (typically disabled for TDX)
   shielded_instance_config {
     enable_secure_boot          = var.enable_secure_boot
     enable_vtpm                 = var.enable_vtpm
     enable_integrity_monitoring = var.enable_vtpm
   }
 
-  # Enable display device
-  enable_display = var.enable_display
-
-  # Boot disk from custom image
   boot_disk {
     initialize_params {
       image = var.source_image
@@ -64,14 +59,12 @@ resource "google_compute_instance" "cvm" {
     }
   }
 
-  # Attach persistent data disk
   attached_disk {
     source      = google_compute_disk.data.self_link
     device_name = var.data_disk_device_name
     mode        = "READ_WRITE"
   }
 
-  # Network interface with external IP
   network_interface {
     network    = var.network
     subnetwork = var.subnetwork
@@ -81,21 +74,19 @@ resource "google_compute_instance" "cvm" {
     }
   }
 
-  # Network tags for firewall rules
-  tags = [var.vm_name]
-
-  # Metadata can be extended as needed
-  metadata = var.metadata
-
-  # Prevent replacement when certain attributes change
   lifecycle {
     ignore_changes = [
+      # SSH keys managed externally (e.g., OS Login, manual updates)
       metadata["ssh-keys"],
+      # GCP may add automatic labels
+      labels,
+      # Boot disk size might be computed from image if not explicitly set
+      boot_disk[0].initialize_params[0].size,
+      boot_disk[0].initialize_params[0].labels,
     ]
   }
 }
 
-# Firewall rules for this VM
 module "firewall" {
   source = "../gcp-firewall"
 

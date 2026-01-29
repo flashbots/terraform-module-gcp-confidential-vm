@@ -14,24 +14,71 @@ resource "google_storage_bucket" "images" {
 locals {
   bucket_name = var.create_image_bucket ? google_storage_bucket.images[0].name : var.image_bucket_name
 
-  # Filter images that need to be uploaded (have source_file)
-  images_to_upload = { for k, v in var.images : k => v if v.source_file != null }
+  # Directory for downloading remote images
+  download_dir = "${path.module}/.terraform/image-downloads"
+
+  # Categorize images by source type based on URI scheme
+  # GCS images: gs://...
+  images_from_gcs = { for k, v in var.images : k => v if startswith(v.source_uri, "gs://") }
+
+  # Remote URL images: http:// or https://
+  images_from_url = { for k, v in var.images : k => v if startswith(v.source_uri, "http://") || startswith(v.source_uri, "https://") }
+
+  # Local file images: everything else (local paths)
+  images_from_local = { for k, v in var.images : k => v if !startswith(v.source_uri, "gs://") && !startswith(v.source_uri, "http://") && !startswith(v.source_uri, "https://") }
+
+  # Images that need to be uploaded to GCS (local files + downloaded URLs)
+  images_to_upload = merge(
+    { for k, v in local.images_from_local : k => { source = v.source_uri, name = basename(v.source_uri) } },
+    { for k, v in local.images_from_url : k => { source = "${local.download_dir}/${k}.tar.gz", name = "${k}.tar.gz" } }
+  )
 
   # Empty DER header bytes for TDX secure boot keys
-  # This matches: printf '\x30\x82\x01\x0a\x02\x82\x01\x01' > /tmp/empty.der
+  # \x30\x82\x01\x0a\x02\x82\x01\x01
   empty_der_base64 = "MIIBCgKCAQE="
 }
 
-# Upload image tar.gz from local to GCS
+resource "null_resource" "download_image" {
+  for_each = local.images_from_url
+
+  triggers = {
+    # Re-download if URL changes
+    url = each.value.source_uri
+    # Re-trigger if cached file is missing
+    file_missing = !fileexists("${local.download_dir}/${each.key}.tar.gz")
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      mkdir -p "${local.download_dir}"
+      echo "Downloading ${each.value.source_uri}..."
+      curl -fSL --progress-bar -o "${local.download_dir}/${each.key}.tar.gz" "${each.value.source_uri}"
+    EOT
+  }
+}
+
 resource "google_storage_bucket_object" "image" {
   for_each = local.images_to_upload
 
-  name   = basename(each.value.source_file)
+  name   = each.value.name
   bucket = local.bucket_name
-  source = each.value.source_file
+  source = each.value.source
+
+  depends_on = [null_resource.download_image]
 }
 
-# Compute images with TDX support
+locals {
+  uploaded_image_uris = {
+    for k, obj in google_storage_bucket_object.image :
+    k => obj.self_link
+  }
+
+  image_gcs_sources = merge(
+    { for k, v in local.images_from_gcs : k => v.source_uri },
+    local.uploaded_image_uris
+  )
+}
+
 resource "google_compute_image" "this" {
   for_each = var.images
 
@@ -39,7 +86,7 @@ resource "google_compute_image" "this" {
   project = var.project
 
   raw_disk {
-    source = each.value.source_uri != null ? each.value.source_uri : "gs://${local.bucket_name}/${google_storage_bucket_object.image[each.key].name}"
+    source = local.image_gcs_sources[each.key]
   }
 
   guest_os_features {
@@ -58,8 +105,6 @@ resource "google_compute_image" "this" {
     type = "VIRTIO_SCSI_MULTIQUEUE"
   }
 
-  # Shielded instance initial state for TDX (empty certificates)
-  # This matches the gcloud --key-exchange-key-file, --signature-database-file, --forbidden-database-file flags
   shielded_instance_initial_state {
     pk {
       content   = var.create_empty_secure_boot_keys ? local.empty_der_base64 : var.secure_boot_keys.pk
@@ -85,7 +130,6 @@ resource "google_compute_image" "this" {
   depends_on = [google_storage_bucket_object.image]
 }
 
-# Confidential VM instances
 module "cvm" {
   source = "./modules/gcp-confidential-vm"
 

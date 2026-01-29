@@ -8,8 +8,6 @@ variable "region" {
   description = "The GCP region where resources will be created"
 }
 
-# Image bucket configuration
-
 variable "create_image_bucket" {
   type        = bool
   description = "Whether to create a new GCS bucket for storing VM images"
@@ -21,43 +19,40 @@ variable "image_bucket_name" {
   description = "Name of the GCS bucket for storing VM images. Used both for creating new bucket or referencing existing one"
 }
 
-# Image configuration
-
 variable "images" {
   type = map(object({
-    source_file = optional(string)
-    source_uri  = optional(string)
+    source_uri = string
   }))
   description = <<-EOT
-    Map of image names to their source configuration.
-    Either source_file (local path to upload) or source_uri (existing GCS URI) must be provided.
+    Map of image names to their source URI.
+    The source type is auto-detected based on the URI scheme:
+    - gs://bucket/path       - GCS URI, image already in cloud storage (used directly)
+    - https://... or http:// - Remote URL, downloaded via curl then uploaded to GCS
+    - /path/to/file          - Local file path, uploaded to GCS
 
     Example:
     ```terraform
     images = {
+      # Existing image in GCS (used directly)
       "buildernet-v2-0-0-rc4" = {
         source_uri = "gs://buildernet-images/buildernet-gcp_2.0.0-rc4-88fd8d54-import.tar.gz"
       }
+      # Local file (will be uploaded to GCS)
       "buildernet-v2-0-1" = {
-        source_file = "/path/to/local/image.tar.gz"
+        source_uri = "/path/to/local/image.tar.gz"
+      }
+      # Remote URL (will be downloaded then uploaded to GCS)
+      "buildernet-v2-2-0" = {
+        source_uri = "https://downloads.buildernet.org/buildernet-images/v2.2.0/buildernet-gcp_2.2.0-9818c3f0-import.tar.gz"
       }
     }
     ```
   EOT
-
-  validation {
-    condition = alltrue([
-      for name, img in var.images : img.source_file != null || img.source_uri != null
-    ])
-    error_message = "Each image must have either source_file or source_uri specified"
-  }
 }
-
-# Secure boot keys configuration
 
 variable "create_empty_secure_boot_keys" {
   type        = bool
-  description = "Create empty secure boot keys for TDX images (matches the gcloud CLI behavior with empty .der files)"
+  description = "Create empty secure boot keys for TDX images"
   default     = true
 }
 
@@ -71,8 +66,6 @@ variable "secure_boot_keys" {
   description = "Custom secure boot keys in base64 format. Only used if create_empty_secure_boot_keys is false"
   default     = {}
 }
-
-# VM configuration
 
 variable "vms" {
   type = map(object({
@@ -98,7 +91,7 @@ variable "vms" {
     Example:
     ```terraform
     vms = {
-      "buildernet-flashbots-gcp-tokyo-101" = {
+      "buildernet-flashbots-gcp-ap-01" = {
         zone              = "asia-northeast1-b"
         image_name        = "buildernet-v2-0-0-rc4"
         machine_type      = "c3-standard-44"

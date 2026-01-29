@@ -28,7 +28,7 @@ variable "vm_name" {
 variable "machine_type" {
   type        = string
   description = "GCP machine type. Must be from C3 series for TDX support (e.g., c3-standard-44)"
-  default     = "c3-standard-44"
+  default     = "c3-standard-4"
   nullable    = false
 
   validation {
@@ -46,7 +46,7 @@ variable "enable_secure_boot" {
 
 variable "enable_vtpm" {
   type        = bool
-  description = "Enable vTPM for the VM (typically disabled for TDX)"
+  description = "Enable vTPM for the VM"
   default     = false
   nullable    = false
 }
@@ -66,14 +66,9 @@ variable "os_disk_size_gb" {
 
 variable "os_disk_type" {
   type        = string
-  description = "Type of the OS boot disk (pd-standard, pd-balanced, pd-ssd, pd-extreme)"
+  description = "Type of the OS boot disk"
   default     = "pd-ssd"
   nullable    = false
-
-  validation {
-    condition     = contains(["pd-standard", "pd-balanced", "pd-ssd", "pd-extreme"], var.os_disk_type)
-    error_message = "OS disk type must be one of: pd-standard, pd-balanced, pd-ssd, pd-extreme"
-  }
 }
 
 variable "data_disk_size_gb" {
@@ -83,14 +78,9 @@ variable "data_disk_size_gb" {
 
 variable "data_disk_type" {
   type        = string
-  description = "Type of the data disk (pd-standard, pd-balanced, pd-ssd, pd-extreme)"
-  default     = "pd-ssd"
+  description = "Type of the data disk"
+  default     = "pd-ssd" # pd-ssd is the best combination of latency and throughput
   nullable    = false
-
-  validation {
-    condition     = contains(["pd-standard", "pd-balanced", "pd-ssd", "pd-extreme"], var.data_disk_type)
-    error_message = "Data disk type must be one of: pd-standard, pd-balanced, pd-ssd, pd-extreme"
-  }
 }
 
 variable "data_disk_device_name" {

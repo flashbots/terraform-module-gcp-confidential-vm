@@ -1,10 +1,14 @@
 locals {
   # Parse ingress rules from the "PORT | PROTOCOL | DESCRIPTION" format
+  # Rule name is based on port and protocol for stability (description changes don't recreate rules)
   ingress_rules = flatten([for k, ranges in var.ingress_rules : [for r in ranges : {
+    # Use port-protocol as the stable key (not description)
+    key = "${trimspace(split("|", k)[0])}-${lower(trimspace(split("|", k)[1]))}"
     name = lower(replace(replace(join("-", [
       var.name,
       "ingress",
-      (length(split("|", k)) == 3 ? trimspace(split("|", k)[2]) : replace(trimspace(split("|", k)[0]), "..", "-")),
+      trimspace(split("|", k)[0]),
+      lower(trimspace(split("|", k)[1])),
     ]), "*", "any"), " ", "-"))
 
     port     = trimspace(split("|", k)[0])
@@ -14,10 +18,12 @@ locals {
 
   # Parse egress rules from the "PORT | PROTOCOL | DESCRIPTION" format
   egress_rules = flatten([for k, ranges in var.egress_rules : [for r in ranges : {
+    key = "${trimspace(split("|", k)[0])}-${lower(trimspace(split("|", k)[1]))}"
     name = lower(replace(replace(join("-", [
       var.name,
       "egress",
-      (length(split("|", k)) == 3 ? trimspace(split("|", k)[2]) : replace(trimspace(split("|", k)[0]), "..", "-")),
+      trimspace(split("|", k)[0]),
+      lower(trimspace(split("|", k)[1])),
     ]), "*", "any"), " ", "-"))
 
     port     = trimspace(split("|", k)[0])
@@ -25,12 +31,11 @@ locals {
     range    = r
   }]])
 
-  # Group ingress rules by name to consolidate
+  # Group rules by name to consolidate (same port/protocol from different source ranges)
   ingress_by_name = { for rule in local.ingress_rules : rule.name => rule... }
   egress_by_name  = { for rule in local.egress_rules : rule.name => rule... }
 }
 
-# Ingress firewall rules
 resource "google_compute_firewall" "ingress" {
   for_each = local.ingress_by_name
 
@@ -52,7 +57,6 @@ resource "google_compute_firewall" "ingress" {
   }
 }
 
-# Egress firewall rules
 resource "google_compute_firewall" "egress" {
   for_each = local.egress_by_name
 

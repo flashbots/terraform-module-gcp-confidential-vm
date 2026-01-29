@@ -6,7 +6,7 @@ output "vm_details" {
       firewall_name = vm.firewall_name
     }
   }
-  description = "Virtual Machine details including ID, public IP, and associated firewall name"
+  description = "VM details"
 }
 
 output "image_bucket" {
