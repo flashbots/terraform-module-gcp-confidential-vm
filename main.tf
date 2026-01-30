@@ -108,22 +108,22 @@ resource "google_compute_image" "this" {
   shielded_instance_initial_state {
     pk {
       content   = var.create_empty_secure_boot_keys ? local.empty_der_base64 : var.secure_boot_keys.pk
-      file_type = "BIN"
+      file_type = "X509"
     }
 
     keks {
       content   = var.create_empty_secure_boot_keys ? local.empty_der_base64 : var.secure_boot_keys.keks
-      file_type = "BIN"
+      file_type = "X509"
     }
 
     dbs {
       content   = var.create_empty_secure_boot_keys ? local.empty_der_base64 : var.secure_boot_keys.dbs
-      file_type = "BIN"
+      file_type = "X509"
     }
 
     dbxs {
       content   = var.create_empty_secure_boot_keys ? local.empty_der_base64 : var.secure_boot_keys.dbxs
-      file_type = "BIN"
+      file_type = "X509"
     }
   }
 
