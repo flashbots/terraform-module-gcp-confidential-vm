@@ -14,7 +14,7 @@ module "confidential_vm" {
 
   images = {
     "buildernet-v2-2-0" = {
-      source_uri = "gs://buildernet-images/buildernet-gcp_2.2.0-9818c3f0-import.tar.gz"
+      source_uri = "https://storage.googleapis.com/buildernet-images/buildernet-gcp_2.2.0-9818c3f0-import.tar.gz"
     }
   }
 

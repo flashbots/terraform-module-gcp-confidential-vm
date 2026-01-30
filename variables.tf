@@ -26,8 +26,8 @@ variable "images" {
   description = <<-EOT
     Map of image names to their source URI.
     The source type is auto-detected based on the URI scheme:
-    - gs://bucket/path       - GCS URI, image already in cloud storage (used directly)
-    - https://... or http:// - Remote URL, downloaded via curl then uploaded to GCS
+    - https://storage.googleapis.com/bucket/path - GCS URI, image already in cloud storage (used directly)
+    - https://... or http://... - Remote URL, downloaded via curl then uploaded to GCS
     - /path/to/file          - Local file path, uploaded to GCS
 
     Example:
@@ -35,7 +35,7 @@ variable "images" {
     images = {
       # Existing image in GCS (used directly)
       "buildernet-v2-0-0-rc4" = {
-        source_uri = "gs://buildernet-images/buildernet-gcp_2.0.0-rc4-88fd8d54-import.tar.gz"
+        source_uri = "https://storage.googleapis.com/buildernet-images/buildernet-gcp_2.0.0-rc4-88fd8d54-import.tar.gz"
       }
       # Local file (will be uploaded to GCS)
       "buildernet-v2-0-1" = {

@@ -18,14 +18,14 @@ locals {
   download_dir = "${path.module}/.terraform/image-downloads"
 
   # Categorize images by source type based on URI scheme
-  # GCS images: gs://...
-  images_from_gcs = { for k, v in var.images : k => v if startswith(v.source_uri, "gs://") }
+  # GCS images: https://storage.googleapis.com/...
+  images_from_gcs = { for k, v in var.images : k => v if startswith(v.source_uri, "https://storage.googleapis.com/") }
 
-  # Remote URL images: http:// or https://
-  images_from_url = { for k, v in var.images : k => v if startswith(v.source_uri, "http://") || startswith(v.source_uri, "https://") }
+  # Remote URL images: http:// or https:// (excluding GCS URLs)
+  images_from_url = { for k, v in var.images : k => v if (startswith(v.source_uri, "http://") || startswith(v.source_uri, "https://")) && !startswith(v.source_uri, "https://storage.googleapis.com/") }
 
   # Local file images: everything else (local paths)
-  images_from_local = { for k, v in var.images : k => v if !startswith(v.source_uri, "gs://") && !startswith(v.source_uri, "http://") && !startswith(v.source_uri, "https://") }
+  images_from_local = { for k, v in var.images : k => v if !startswith(v.source_uri, "http://") && !startswith(v.source_uri, "https://") }
 
   # Images that need to be uploaded to GCS (local files + downloaded URLs)
   images_to_upload = merge(
