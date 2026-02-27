@@ -82,6 +82,7 @@ variable "vms" {
     data_disk_device_name  = optional(string, "persistent")
     network                = string
     subnetwork             = string
+    metadata               = optional(map(string), {})
     firewall_ingress_rules = optional(map(list(string)), {})
     firewall_egress_rules  = optional(map(list(string)), {})
   }))
