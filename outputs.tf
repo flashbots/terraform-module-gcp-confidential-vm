@@ -16,10 +16,10 @@ output "image_bucket" {
 
 output "images" {
   value = {
-    for k, img in google_compute_image.this : k => {
-      id        = img.id
-      self_link = img.self_link
+    for k, ref in local.image_refs : k => {
+      image_ref = ref
+      managed   = contains(keys(google_compute_image.this), k)
     }
   }
-  description = "Map of created compute images"
+  description = "Map of all images with their reference and whether they are managed by this module"
 }

@@ -17,19 +17,23 @@ locals {
   # Directory for downloading remote images
   download_dir = "${path.module}/.terraform/image-downloads"
 
-  # Categorize images by source type based on URI scheme
+  # Split images into those that need to be created vs pre-existing references
+  images_to_create = { for k, v in var.images : k => v if v.source_uri != null }
+  images_existing  = { for k, v in var.images : k => v if v.source_image != null }
+
+  # Categorize images to create by source type based on URI scheme
   # GCS images: https://storage.googleapis.com/...
-  images_from_gcs = { for k, v in var.images : k => v if startswith(v.source_uri, "https://storage.googleapis.com/") }
+  images_from_gcs = { for k, v in local.images_to_create : k => v if startswith(v.source_uri, "https://storage.googleapis.com/") }
 
   # Remote URL images: http:// or https:// (excluding GCS URLs)
-  images_from_url = { for k, v in var.images : k => v if (startswith(v.source_uri, "http://") || startswith(v.source_uri, "https://")) && !startswith(v.source_uri, "https://storage.googleapis.com/") }
+  images_from_url = { for k, v in local.images_to_create : k => v if (startswith(v.source_uri, "http://") || startswith(v.source_uri, "https://")) && !startswith(v.source_uri, "https://storage.googleapis.com/") }
 
   # Local file images: everything else (local paths)
-  images_from_local = { for k, v in var.images : k => v if !startswith(v.source_uri, "http://") && !startswith(v.source_uri, "https://") }
+  images_from_local = { for k, v in local.images_to_create : k => v if !startswith(v.source_uri, "http://") && !startswith(v.source_uri, "https://") }
 
   # Images that need to be uploaded to GCS (local files + downloaded URLs)
   images_to_upload = merge(
-    { for k, v in local.images_from_local : k => { source = v.source_uri, name = basename(v.source_uri) } },
+    { for k, v in local.images_from_local : k => { source = v.source_uri, name = "${filesha256(v.source_uri)}-${basename(v.source_uri)}" } },
     { for k, v in local.images_from_url : k => { source = "${local.download_dir}/${k}.tar.gz", name = "${k}.tar.gz" } }
   )
 
@@ -80,7 +84,7 @@ locals {
 }
 
 resource "google_compute_image" "this" {
-  for_each = var.images
+  for_each = local.images_to_create
 
   name    = each.key
   project = var.project
@@ -130,6 +134,14 @@ resource "google_compute_image" "this" {
   depends_on = [google_storage_bucket_object.image]
 }
 
+locals {
+  # Unified image reference map: created images use self_link, existing images pass through directly
+  image_refs = merge(
+    { for k, img in google_compute_image.this : k => img.self_link },
+    { for k, v in local.images_existing : k => v.source_image },
+  )
+}
+
 module "cvm" {
   source = "./modules/gcp-confidential-vm"
 
@@ -140,7 +152,7 @@ module "cvm" {
   zone    = each.value.zone
 
   vm_name               = each.key
-  source_image          = google_compute_image.this[each.value.image_name].self_link
+  source_image          = local.image_refs[each.value.image_name]
   machine_type          = each.value.machine_type
   enable_secure_boot    = each.value.enable_secure_boot
   enable_vtpm           = each.value.enable_vtpm

@@ -21,33 +21,51 @@ variable "image_bucket_name" {
 
 variable "images" {
   type = map(object({
-    source_uri = string
+    source_uri   = optional(string)
+    source_image = optional(string)
   }))
   description = <<-EOT
-    Map of image names to their source URI.
-    The source type is auto-detected based on the URI scheme:
-    - https://storage.googleapis.com/bucket/path - GCS URI, image already in cloud storage (used directly)
-    - https://... or http://... - Remote URL, downloaded via curl then uploaded to GCS
-    - /path/to/file          - Local file path, uploaded to GCS
+    Map of image names to their source.
+
+    Each image must set exactly one of:
+    - source_uri:   Create a new compute image from a raw disk file.
+                    Auto-detected based on URI scheme:
+                    - https://storage.googleapis.com/bucket/path - GCS URI (used directly)
+                    - https://... or http://... - Remote URL (downloaded then uploaded to GCS)
+                    - /path/to/file - Local file path (uploaded to GCS)
+    - source_image: Reference an existing GCP image. Accepts any format supported by
+                    google_compute_instance boot_disk (self-link, image name, family, etc.)
 
     Example:
     ```terraform
     images = {
-      # Existing image in GCS (used directly)
+      # Existing image in GCS (will create a compute image)
       "buildernet-v2-0-0-rc4" = {
         source_uri = "https://storage.googleapis.com/buildernet-images/buildernet-gcp_2.0.0-rc4-88fd8d54-import.tar.gz"
       }
-      # Local file (will be uploaded to GCS)
+      # Local file (will be uploaded to GCS and create a compute image)
       "buildernet-v2-0-1" = {
         source_uri = "/path/to/local/image.tar.gz"
       }
-      # Remote URL (will be downloaded then uploaded to GCS)
+      # Remote URL (will be downloaded, uploaded to GCS, and create a compute image)
       "buildernet-v2-2-0" = {
         source_uri = "https://downloads.buildernet.org/buildernet-images/v2.2.0/buildernet-gcp_2.2.0-9818c3f0-import.tar.gz"
+      }
+      # Pre-existing GCP image (used directly, no resources created)
+      "buildernet-v2-3-0" = {
+        source_image = "projects/my-project/global/images/buildernet-v2-3-0"
       }
     }
     ```
   EOT
+
+  validation {
+    condition = alltrue([
+      for k, v in var.images :
+      (v.source_uri != null) != (v.source_image != null)
+    ])
+    error_message = "Each image must set exactly one of 'source_uri' or 'source_image'."
+  }
 }
 
 variable "create_empty_secure_boot_keys" {
