@@ -1,9 +1,15 @@
 resource "google_compute_address" "this" {
+  count = var.external_ip == null ? 1 : 0
+
   name    = var.vm_name
   project = var.project
   region  = var.region
 
   address_type = "EXTERNAL"
+}
+
+locals {
+  public_ip = var.external_ip != null ? var.external_ip : google_compute_address.this[0].address
 }
 
 resource "google_compute_disk" "data" {
@@ -70,7 +76,7 @@ resource "google_compute_instance" "cvm" {
     subnetwork = var.subnetwork
 
     access_config {
-      nat_ip = google_compute_address.this.address
+      nat_ip = local.public_ip
     }
   }
 

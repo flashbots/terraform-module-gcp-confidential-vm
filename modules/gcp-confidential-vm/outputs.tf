@@ -9,7 +9,7 @@ output "vm_self_link" {
 }
 
 output "vm_public_ip" {
-  value       = google_compute_address.this.address
+  value       = local.public_ip
   description = "The static external IP address of the VM"
 }
 

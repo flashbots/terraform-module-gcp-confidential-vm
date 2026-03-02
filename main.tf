@@ -164,6 +164,7 @@ module "cvm" {
   data_disk_device_name = each.value.data_disk_device_name
   network               = each.value.network
   subnetwork            = each.value.subnetwork
+  external_ip           = each.value.external_ip
   metadata              = each.value.metadata
 
   firewall_ingress_rules = each.value.firewall_ingress_rules

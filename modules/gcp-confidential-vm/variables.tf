@@ -90,6 +90,12 @@ variable "data_disk_device_name" {
   nullable    = false
 }
 
+variable "external_ip" {
+  type        = string
+  description = "Pre-allocated external IP address. If not set, a new static IP is created"
+  default     = null
+}
+
 variable "network" {
   type        = string
   description = "Name or self-link of the VPC network"
