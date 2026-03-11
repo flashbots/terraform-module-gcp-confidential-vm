@@ -15,7 +15,7 @@ locals {
   bucket_name = var.create_image_bucket ? google_storage_bucket.images[0].name : var.image_bucket_name
 
   # Directory for downloading remote images
-  download_dir = "${path.module}/.terraform/image-downloads"
+  download_dir = "${path.root}/.terraform/image-downloads"
 
   # Split images into those that need to be created vs pre-existing references
   images_to_create = { for k, v in var.images : k => v if v.source_uri != null }
@@ -48,8 +48,6 @@ resource "null_resource" "download_image" {
   triggers = {
     # Re-download if URL changes
     url = each.value.source_uri
-    # Re-trigger if cached file is missing
-    file_missing = !fileexists("${local.download_dir}/${each.key}.tar.gz")
   }
 
   provisioner "local-exec" {
@@ -67,6 +65,10 @@ resource "google_storage_bucket_object" "image" {
   name   = each.value.name
   bucket = local.bucket_name
   source = each.value.source
+
+  lifecycle {
+    ignore_changes = [detect_md5hash]
+  }
 
   depends_on = [null_resource.download_image]
 }
