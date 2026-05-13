@@ -80,6 +80,18 @@ resource "google_compute_instance" "cvm" {
     }
   }
 
+  # If `service_account` is null (the default), no block is emitted and the
+  # VM is created without an attached SA — same behavior as before this
+  # variable existed. When set, the VM gets an SA and can use the metadata
+  # identity endpoint (required for, e.g., Vault GCP auth from the host).
+  dynamic "service_account" {
+    for_each = var.service_account != null ? [var.service_account] : []
+    content {
+      email  = service_account.value.email
+      scopes = service_account.value.scopes
+    }
+  }
+
   lifecycle {
     ignore_changes = [
       # SSH keys managed externally (e.g., OS Login, manual updates)

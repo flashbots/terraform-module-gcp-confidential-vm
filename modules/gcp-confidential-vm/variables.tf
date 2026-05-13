@@ -113,6 +113,28 @@ variable "metadata" {
   nullable    = false
 }
 
+variable "service_account" {
+  type = object({
+    email  = optional(string)
+    scopes = optional(list(string), ["cloud-platform"])
+  })
+  description = <<-EOT
+    Service account to attach to the VM.
+
+    - `null` (default): no service account is attached. The VM cannot use the
+      GCE metadata identity endpoint (e.g. for Vault GCP auth) or call most
+      Google Cloud APIs.
+    - `{}`: uses the project's default compute service account
+      (`<project-number>-compute@developer.gserviceaccount.com`) with the
+      `cloud-platform` scope.
+    - `{ email = "...", scopes = [...] }`: explicit SA and OAuth scopes.
+
+    The `cloud-platform` scope is the recommended catch-all; finer-grained
+    legacy scopes are not generally supported by newer GCP features.
+  EOT
+  default     = null
+}
+
 variable "firewall_ingress_rules" {
   type        = map(list(string))
   description = "Ingress firewall rules. See ../gcp-firewall/variables.tf for format"
