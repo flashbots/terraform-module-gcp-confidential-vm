@@ -168,6 +168,7 @@ module "cvm" {
   subnetwork            = each.value.subnetwork
   external_ip           = each.value.external_ip
   metadata              = each.value.metadata
+  service_account       = each.value.service_account
 
   firewall_ingress_rules = each.value.firewall_ingress_rules
   firewall_egress_rules  = each.value.firewall_egress_rules

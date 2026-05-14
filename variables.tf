@@ -102,6 +102,10 @@ variable "vms" {
     subnetwork             = string
     external_ip            = optional(string)
     metadata               = optional(map(string), {})
+    service_account = optional(object({
+      email  = optional(string)
+      scopes = optional(list(string), ["cloud-platform"])
+    }))
     firewall_ingress_rules = optional(map(list(string)), {})
     firewall_egress_rules  = optional(map(list(string)), {})
   }))

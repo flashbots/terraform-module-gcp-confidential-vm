@@ -59,7 +59,7 @@ Refer to the [examples](./examples/) directory for detailed configuration exampl
 | <a name="input_project"></a> [project](#input\_project) | The GCP project ID where all resources will be created | `string` | n/a | yes |
 | <a name="input_region"></a> [region](#input\_region) | The GCP region where resources will be created | `string` | n/a | yes |
 | <a name="input_secure_boot_keys"></a> [secure\_boot\_keys](#input\_secure\_boot\_keys) | Custom secure boot keys in base64 format. Only used if create\_empty\_secure\_boot\_keys is false | <pre>object({<br/>    pk   = optional(string)<br/>    keks = optional(string)<br/>    dbs  = optional(string)<br/>    dbxs = optional(string)<br/>  })</pre> | `{}` | no |
-| <a name="input_vms"></a> [vms](#input\_vms) | Map of VM configurations keyed by VM name.<br/><br/>Example:<pre>terraform<br/>vms = {<br/>  "buildernet-flashbots-gcp-ap-01" = {<br/>    zone              = "asia-northeast1-b"<br/>    image_name        = "buildernet-v2-0-0-rc4"<br/>    machine_type      = "c3-standard-44"<br/>    data_disk_size_gb = 2250<br/>    network           = "base"<br/>    subnetwork        = "base-asia-northeast1"<br/>    firewall_ingress_rules = {<br/>      "22 \| tcp \| ssh"     = ["0.0.0.0/0"]<br/>      "30303 \| tcp \| p2p"  = ["0.0.0.0/0"]<br/>      "30303 \| udp \| p2p"  = ["0.0.0.0/0"]<br/>    }<br/>    firewall_egress_rules = {<br/>      "0 \| all" = ["0.0.0.0/0"]<br/>    }<br/>  }<br/>}</pre> | <pre>map(object({<br/>    zone                   = string<br/>    image_name             = string<br/>    machine_type           = optional(string, "c3-standard-44")<br/>    enable_secure_boot     = optional(bool, false)<br/>    enable_vtpm            = optional(bool, false)<br/>    enable_display         = optional(bool, true)<br/>    os_disk_size_gb        = optional(number)<br/>    os_disk_type           = optional(string, "pd-ssd")<br/>    data_disk_size_gb      = number<br/>    data_disk_type         = optional(string, "pd-ssd")<br/>    data_disk_device_name  = optional(string, "persistent")<br/>    network                = string<br/>    subnetwork             = string<br/>    external_ip            = optional(string)<br/>    metadata               = optional(map(string), {})<br/>    firewall_ingress_rules = optional(map(list(string)), {})<br/>    firewall_egress_rules  = optional(map(list(string)), {})<br/>  }))</pre> | n/a | yes |
+| <a name="input_vms"></a> [vms](#input\_vms) | Map of VM configurations keyed by VM name.<br/><br/>Example:<pre>terraform<br/>vms = {<br/>  "buildernet-flashbots-gcp-ap-01" = {<br/>    zone              = "asia-northeast1-b"<br/>    image_name        = "buildernet-v2-0-0-rc4"<br/>    machine_type      = "c3-standard-44"<br/>    data_disk_size_gb = 2250<br/>    network           = "base"<br/>    subnetwork        = "base-asia-northeast1"<br/>    firewall_ingress_rules = {<br/>      "22 \| tcp \| ssh"     = ["0.0.0.0/0"]<br/>      "30303 \| tcp \| p2p"  = ["0.0.0.0/0"]<br/>      "30303 \| udp \| p2p"  = ["0.0.0.0/0"]<br/>    }<br/>    firewall_egress_rules = {<br/>      "0 \| all" = ["0.0.0.0/0"]<br/>    }<br/>  }<br/>}</pre> | <pre>map(object({<br/>    zone                   = string<br/>    image_name             = string<br/>    machine_type           = optional(string, "c3-standard-44")<br/>    enable_secure_boot     = optional(bool, false)<br/>    enable_vtpm            = optional(bool, false)<br/>    enable_display         = optional(bool, true)<br/>    os_disk_size_gb        = optional(number)<br/>    os_disk_type           = optional(string, "pd-ssd")<br/>    data_disk_size_gb      = number<br/>    data_disk_type         = optional(string, "pd-ssd")<br/>    data_disk_device_name  = optional(string, "persistent")<br/>    network                = string<br/>    subnetwork             = string<br/>    external_ip            = optional(string)<br/>    metadata               = optional(map(string), {})<br/>    service_account = optional(object({<br/>      email  = optional(string)<br/>      scopes = optional(list(string), ["cloud-platform"])<br/>    }))<br/>    firewall_ingress_rules = optional(map(list(string)), {})<br/>    firewall_egress_rules  = optional(map(list(string)), {})<br/>  }))</pre> | n/a | yes |
 
 ## Outputs
 
@@ -98,6 +98,18 @@ Use `source_image` to reference an image that already exists in GCP. No resource
 ## External IP
 
 By default, the module allocates a new static external IP for each VM. To use a pre-allocated IP instead, set `external_ip` on the VM configuration. When set, the module skips IP allocation and uses the provided address directly.
+
+## Service Account
+
+By default, VMs are created without an attached service account. To attach one, set `service_account` on the VM configuration:
+
+| Value | Behavior |
+|-------|----------|
+| omitted / `null` | No service account attached. The VM cannot use the GCE metadata identity endpoint (e.g. for Vault GCP auth) or call most Google Cloud APIs. |
+| `{}` | Attaches the project's default compute service account (`<project-number>-compute@developer.gserviceaccount.com`) with the `cloud-platform` scope. |
+| `{ email = "...", scopes = [...] }` | Attaches the specified service account with the given OAuth scopes. |
+
+The `cloud-platform` scope is the recommended catch-all; finer-grained legacy scopes are not generally supported by newer GCP features.
 
 ## Firewall Rule Format
 
