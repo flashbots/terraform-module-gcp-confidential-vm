@@ -38,7 +38,7 @@ Refer to the [examples](./examples/) directory for detailed configuration exampl
 ## Requirements
 
 | Name | Version |
-| ---- | ------- |
+|------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.1 |
 | <a name="requirement_google"></a> [google](#requirement\_google) | >= 7.0.0 |
 | <a name="requirement_null"></a> [null](#requirement\_null) | >= 3.0.0 |
@@ -46,12 +46,12 @@ Refer to the [examples](./examples/) directory for detailed configuration exampl
 ## Resources
 
 | Name | Type |
-| ---- | ---- |
+|------|------|
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-| ---- | ----------- | ---- | ------- | :------: |
+|------|-------------|------|---------|:--------:|
 | <a name="input_create_empty_secure_boot_keys"></a> [create\_empty\_secure\_boot\_keys](#input\_create\_empty\_secure\_boot\_keys) | Create empty secure boot keys for TDX images | `bool` | `true` | no |
 | <a name="input_create_image_bucket"></a> [create\_image\_bucket](#input\_create\_image\_bucket) | Whether to create a new GCS bucket for storing VM images | `bool` | `true` | no |
 | <a name="input_image_bucket_name"></a> [image\_bucket\_name](#input\_image\_bucket\_name) | Name of the GCS bucket for storing VM images. Used both for creating new bucket or referencing existing one | `string` | n/a | yes |
@@ -59,16 +59,12 @@ Refer to the [examples](./examples/) directory for detailed configuration exampl
 | <a name="input_project"></a> [project](#input\_project) | The GCP project ID where all resources will be created | `string` | n/a | yes |
 | <a name="input_region"></a> [region](#input\_region) | The GCP region where resources will be created | `string` | n/a | yes |
 | <a name="input_secure_boot_keys"></a> [secure\_boot\_keys](#input\_secure\_boot\_keys) | Custom secure boot keys in base64 format. Only used if create\_empty\_secure\_boot\_keys is false | <pre>object({<br/>    pk   = optional(string)<br/>    keks = optional(string)<br/>    dbs  = optional(string)<br/>    dbxs = optional(string)<br/>  })</pre> | `{}` | no |
-<<<<<<< pablo/expose_service_account
-| <a name="input_vms"></a> [vms](#input\_vms) | Map of VM configurations keyed by VM name.<br/><br/>Example:<pre>terraform<br/>vms = {<br/>  "buildernet-flashbots-gcp-ap-01" = {<br/>    zone              = "asia-northeast1-b"<br/>    image_name        = "buildernet-v2-0-0-rc4"<br/>    machine_type      = "c3-standard-44"<br/>    data_disk_size_gb = 2250<br/>    network           = "base"<br/>    subnetwork        = "base-asia-northeast1"<br/>    firewall_ingress_rules = {<br/>      "22 | tcp | ssh"     = ["0.0.0.0/0"]<br/>      "30303 | tcp | p2p"  = ["0.0.0.0/0"]<br/>      "30303 | udp | p2p"  = ["0.0.0.0/0"]<br/>    }<br/>    firewall_egress_rules = {<br/>      "0 | all" = ["0.0.0.0/0"]<br/>    }<br/>  }<br/>}</pre> | <pre>map(object({<br/>    zone                   = string<br/>    image_name             = string<br/>    machine_type           = optional(string, "c3-standard-44")<br/>    enable_secure_boot     = optional(bool, false)<br/>    enable_vtpm            = optional(bool, false)<br/>    enable_display         = optional(bool, true)<br/>    os_disk_size_gb        = optional(number)<br/>    os_disk_type           = optional(string, "pd-ssd")<br/>    data_disk_size_gb      = number<br/>    data_disk_type         = optional(string, "pd-ssd")<br/>    data_disk_device_name  = optional(string, "persistent")<br/>    network                = string<br/>    subnetwork             = string<br/>    external_ip            = optional(string)<br/>    metadata               = optional(map(string), {})<br/>    service_account = optional(object({<br/>      email  = optional(string)<br/>      scopes = optional(list(string), ["cloud-platform"])<br/>    }))<br/>    firewall_ingress_rules = optional(map(list(string)), {})<br/>    firewall_egress_rules  = optional(map(list(string)), {})<br/>  }))</pre> | n/a | yes |
-=======
-| <a name="input_vms"></a> [vms](#input\_vms) | Map of VM configurations keyed by VM name.<br/><br/>Example:<pre>terraform<br/>vms = {<br/>  "buildernet-flashbots-gcp-ap-01" = {<br/>    zone              = "asia-northeast1-b"<br/>    image_name        = "buildernet-v2-0-0-rc4"<br/>    machine_type      = "c3-standard-44"<br/>    data_disk_size_gb = 2250<br/>    network           = "base"<br/>    subnetwork        = "base-asia-northeast1"<br/>    firewall_ingress_rules = {<br/>      "22 \| tcp \| ssh"     = ["0.0.0.0/0"]<br/>      "30303 \| tcp \| p2p"  = ["0.0.0.0/0"]<br/>      "30303 \| udp \| p2p"  = ["0.0.0.0/0"]<br/>    }<br/>    firewall_egress_rules = {<br/>      "0 \| all" = ["0.0.0.0/0"]<br/>    }<br/>  }<br/>}</pre> | <pre>map(object({<br/>    zone                   = string<br/>    image_name             = string<br/>    machine_type           = optional(string, "c3-standard-44")<br/>    enable_secure_boot     = optional(bool, false)<br/>    enable_vtpm            = optional(bool, false)<br/>    enable_display         = optional(bool, true)<br/>    os_disk_size_gb        = optional(number)<br/>    os_disk_type           = optional(string, "pd-ssd")<br/>    data_disk_size_gb      = number<br/>    data_disk_type         = optional(string, "pd-ssd")<br/>    data_disk_device_name  = optional(string, "persistent")<br/>    network                = string<br/>    subnetwork             = string<br/>    external_ip            = optional(string)<br/>    metadata               = optional(map(string), {})<br/>    firewall_ingress_rules = optional(map(list(string)), {})<br/>    firewall_egress_rules  = optional(map(list(string)), {})<br/>  }))</pre> | n/a | yes |
->>>>>>> main
+| <a name="input_vms"></a> [vms](#input\_vms) | Map of VM configurations keyed by VM name.<br/><br/>Example:<pre>terraform<br/>vms = {<br/>  "buildernet-flashbots-gcp-ap-01" = {<br/>    zone              = "asia-northeast1-b"<br/>    image_name        = "buildernet-v2-0-0-rc4"<br/>    machine_type      = "c3-standard-44"<br/>    data_disk_size_gb = 2250<br/>    network           = "base"<br/>    subnetwork        = "base-asia-northeast1"<br/>    firewall_ingress_rules = {<br/>      "22 \| tcp \| ssh"     = ["0.0.0.0/0"]<br/>      "30303 \| tcp \| p2p"  = ["0.0.0.0/0"]<br/>      "30303 \| udp \| p2p"  = ["0.0.0.0/0"]<br/>    }<br/>    firewall_egress_rules = {<br/>      "0 \| all" = ["0.0.0.0/0"]<br/>    }<br/>  }<br/>}</pre> | <pre>map(object({<br/>    zone                   = string<br/>    image_name             = string<br/>    machine_type           = optional(string, "c3-standard-44")<br/>    enable_secure_boot     = optional(bool, false)<br/>    enable_vtpm            = optional(bool, false)<br/>    enable_display         = optional(bool, true)<br/>    os_disk_size_gb        = optional(number)<br/>    os_disk_type           = optional(string, "pd-ssd")<br/>    data_disk_size_gb      = number<br/>    data_disk_type         = optional(string, "pd-ssd")<br/>    data_disk_device_name  = optional(string, "persistent")<br/>    network                = string<br/>    subnetwork             = string<br/>    external_ip            = optional(string)<br/>    metadata               = optional(map(string), {})<br/>    service_account = optional(object({<br/>      email  = optional(string)<br/>      scopes = optional(list(string), ["cloud-platform"])<br/>    }))<br/>    firewall_ingress_rules = optional(map(list(string)), {})<br/>    firewall_egress_rules  = optional(map(list(string)), {})<br/>  }))</pre> | n/a | yes |
 
 ## Outputs
 
 | Name | Description |
-| ---- | ----------- |
+|------|-------------|
 | <a name="output_image_bucket"></a> [image\_bucket](#output\_image\_bucket) | Name of the GCS bucket used for VM images |
 | <a name="output_images"></a> [images](#output\_images) | Map of all images with their reference and whether they are managed by this module |
 | <a name="output_vm_details"></a> [vm\_details](#output\_vm\_details) | VM details |
