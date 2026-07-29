@@ -156,6 +156,7 @@ module "cvm" {
   vm_name               = each.key
   source_image          = local.image_refs[each.value.image_name]
   machine_type          = each.value.machine_type
+  min_cpu_platform      = each.value.min_cpu_platform
   enable_secure_boot    = each.value.enable_secure_boot
   enable_vtpm           = each.value.enable_vtpm
   enable_display        = each.value.enable_display

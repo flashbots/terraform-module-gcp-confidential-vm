@@ -90,6 +90,7 @@ variable "vms" {
     zone                   = string
     image_name             = string
     machine_type           = optional(string, "c3-standard-44")
+    min_cpu_platform       = optional(string)
     enable_secure_boot     = optional(bool, false)
     enable_vtpm            = optional(bool, false)
     enable_display         = optional(bool, true)

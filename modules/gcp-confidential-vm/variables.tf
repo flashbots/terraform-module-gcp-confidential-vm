@@ -27,13 +27,13 @@ variable "vm_name" {
 
 variable "machine_type" {
   type        = string
-  description = "GCP machine type. Must be from C3 series for TDX support (e.g., c3-standard-44)"
+  description = "GCP machine type. Must be from C3 or C4 series for TDX support (e.g., c3-standard-44, c4-standard-48)"
   default     = "c3-standard-4"
   nullable    = false
 
   validation {
-    condition     = can(regex("^c3-", var.machine_type))
-    error_message = "Intel TDX requires C3 series machine types (e.g., c3-standard-44)"
+    condition     = can(regex("^c[34]-", var.machine_type))
+    error_message = "Intel TDX requires C3 or C4 series machine types (e.g., c3-standard-44, c4-standard-48)"
   }
 }
 
@@ -56,6 +56,12 @@ variable "enable_display" {
   description = "Enable display device for the VM"
   default     = true
   nullable    = false
+}
+
+variable "min_cpu_platform" {
+  type        = string
+  description = "Minimum CPU platform for the VM. Defaults to \"Intel Granite Rapids\" for c4-* machine types (required for C4 TDX placement); unset otherwise. Set explicitly to override."
+  default     = null
 }
 
 variable "os_disk_size_gb" {
