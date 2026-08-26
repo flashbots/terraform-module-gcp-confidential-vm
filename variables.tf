@@ -98,6 +98,8 @@ variable "vms" {
     os_disk_type           = optional(string, "pd-ssd")
     data_disk_size_gb      = number
     data_disk_type         = optional(string, "pd-ssd")
+    data_disk_provisioned_iops       = optional(number)
+    data_disk_provisioned_throughput = optional(number)
     data_disk_device_name  = optional(string, "persistent")
     network                = string
     subnetwork             = string

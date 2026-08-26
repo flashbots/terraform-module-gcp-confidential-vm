@@ -164,6 +164,8 @@ module "cvm" {
   os_disk_type          = each.value.os_disk_type
   data_disk_size_gb     = each.value.data_disk_size_gb
   data_disk_type        = each.value.data_disk_type
+  data_disk_provisioned_iops       = each.value.data_disk_provisioned_iops
+  data_disk_provisioned_throughput = each.value.data_disk_provisioned_throughput
   data_disk_device_name = each.value.data_disk_device_name
   network               = each.value.network
   subnetwork            = each.value.subnetwork
