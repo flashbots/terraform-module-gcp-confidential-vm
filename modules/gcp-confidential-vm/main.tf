@@ -20,6 +20,9 @@ resource "google_compute_disk" "data" {
   size = var.data_disk_size_gb
   type = var.data_disk_type
 
+  provisioned_iops       = var.data_disk_provisioned_iops
+  provisioned_throughput = var.data_disk_provisioned_throughput
+
   lifecycle {
     ignore_changes = [
       image,

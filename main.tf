@@ -26,7 +26,7 @@ locals {
   images_from_gcs = { for k, v in local.images_to_create : k => v if startswith(v.source_uri, "https://storage.googleapis.com/") }
 
   # Remote URL images: http:// or https:// (excluding GCS URLs)
-  images_from_url = { for k, v in local.images_to_create : k => v if (startswith(v.source_uri, "http://") || startswith(v.source_uri, "https://")) && !startswith(v.source_uri, "https://storage.googleapis.com/") }
+  images_from_url = { for k, v in local.images_to_create : k => v if(startswith(v.source_uri, "http://") || startswith(v.source_uri, "https://")) && !startswith(v.source_uri, "https://storage.googleapis.com/") }
 
   # Local file images: everything else (local paths)
   images_from_local = { for k, v in local.images_to_create : k => v if !startswith(v.source_uri, "http://") && !startswith(v.source_uri, "https://") }
@@ -153,23 +153,25 @@ module "cvm" {
   region  = var.region
   zone    = each.value.zone
 
-  vm_name               = each.key
-  source_image          = local.image_refs[each.value.image_name]
-  machine_type          = each.value.machine_type
-  min_cpu_platform      = each.value.min_cpu_platform
-  enable_secure_boot    = each.value.enable_secure_boot
-  enable_vtpm           = each.value.enable_vtpm
-  enable_display        = each.value.enable_display
-  os_disk_size_gb       = each.value.os_disk_size_gb
-  os_disk_type          = each.value.os_disk_type
-  data_disk_size_gb     = each.value.data_disk_size_gb
-  data_disk_type        = each.value.data_disk_type
-  data_disk_device_name = each.value.data_disk_device_name
-  network               = each.value.network
-  subnetwork            = each.value.subnetwork
-  external_ip           = each.value.external_ip
-  metadata              = each.value.metadata
-  service_account       = each.value.service_account
+  vm_name                          = each.key
+  source_image                     = local.image_refs[each.value.image_name]
+  machine_type                     = each.value.machine_type
+  min_cpu_platform                 = each.value.min_cpu_platform
+  enable_secure_boot               = each.value.enable_secure_boot
+  enable_vtpm                      = each.value.enable_vtpm
+  enable_display                   = each.value.enable_display
+  os_disk_size_gb                  = each.value.os_disk_size_gb
+  os_disk_type                     = each.value.os_disk_type
+  data_disk_size_gb                = each.value.data_disk_size_gb
+  data_disk_type                   = each.value.data_disk_type
+  data_disk_provisioned_iops       = each.value.data_disk_provisioned_iops
+  data_disk_provisioned_throughput = each.value.data_disk_provisioned_throughput
+  data_disk_device_name            = each.value.data_disk_device_name
+  network                          = each.value.network
+  subnetwork                       = each.value.subnetwork
+  external_ip                      = each.value.external_ip
+  metadata                         = each.value.metadata
+  service_account                  = each.value.service_account
 
   firewall_ingress_rules = each.value.firewall_ingress_rules
   firewall_egress_rules  = each.value.firewall_egress_rules

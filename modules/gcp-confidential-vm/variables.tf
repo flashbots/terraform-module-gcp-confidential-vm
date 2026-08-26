@@ -89,6 +89,18 @@ variable "data_disk_type" {
   nullable    = false
 }
 
+variable "data_disk_provisioned_iops" {
+  type        = number
+  description = "Provisioned IOPS for the data disk (hyperdisk types only; pd-* ignore it). Null = provider/GCP default."
+  default     = null
+}
+
+variable "data_disk_provisioned_throughput" {
+  type        = number
+  description = "Provisioned throughput in MB/s for the data disk (hyperdisk types only). Null = provider/GCP default."
+  default     = null
+}
+
 variable "data_disk_device_name" {
   type        = string
   description = "Device name for the data disk attachment"
