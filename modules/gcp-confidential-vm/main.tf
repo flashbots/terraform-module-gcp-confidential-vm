@@ -6,6 +6,7 @@ resource "google_compute_address" "this" {
   region  = var.region
 
   address_type = "EXTERNAL"
+  network_tier = var.network_tier
 }
 
 locals {
@@ -35,12 +36,12 @@ resource "google_compute_disk" "data" {
 }
 
 resource "google_compute_instance" "cvm" {
-  name                      = var.vm_name
-  project                   = var.project
-  zone                      = var.zone
+  name         = var.vm_name
+  project      = var.project
+  zone         = var.zone
   machine_type = var.machine_type
   # C4 TDX requires Granite Rapids hosts; without the pin, placement fails
-  min_cpu_platform = var.min_cpu_platform != null ? var.min_cpu_platform : (startswith(var.machine_type, "c4-") ? "Intel Granite Rapids" : null)
+  min_cpu_platform          = var.min_cpu_platform != null ? var.min_cpu_platform : (startswith(var.machine_type, "c4-") ? "Intel Granite Rapids" : null)
   allow_stopping_for_update = true
   enable_display            = var.enable_display
   tags                      = [var.vm_name]
@@ -81,7 +82,8 @@ resource "google_compute_instance" "cvm" {
     subnetwork = var.subnetwork
 
     access_config {
-      nat_ip = local.public_ip
+      nat_ip       = local.public_ip
+      network_tier = var.network_tier
     }
   }
 

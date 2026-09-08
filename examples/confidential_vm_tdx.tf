@@ -35,14 +35,15 @@ module "confidential_vm" {
       data_disk_type        = "pd-ssd"
       data_disk_device_name = "persistent"
 
-      network    = "core"
-      subnetwork = "core-europe-west4"
+      network      = "core"
+      subnetwork   = "core-europe-west4"
+      network_tier = "STANDARD"
 
       firewall_ingress_rules = {
-        "22 | tcp | ssh"         = ["0.0.0.0/0"]
-        "30303 | tcp | p2p"      = ["0.0.0.0/0"]
-        "30303 | udp | p2p-udp"  = ["0.0.0.0/0"]
-        "8545-8546 | tcp | rpc"  = ["0.0.0.0/"]
+        "22 | tcp | ssh"        = ["0.0.0.0/0"]
+        "30303 | tcp | p2p"     = ["0.0.0.0/0"]
+        "30303 | udp | p2p-udp" = ["0.0.0.0/0"]
+        "8545-8546 | tcp | rpc" = ["0.0.0.0/"]
       }
 
       firewall_egress_rules = {

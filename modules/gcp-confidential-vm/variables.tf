@@ -114,6 +114,18 @@ variable "external_ip" {
   default     = null
 }
 
+variable "network_tier" {
+  type        = string
+  description = "Network service tier for the external IP and VM access config"
+  default     = "PREMIUM"
+  nullable    = false
+
+  validation {
+    condition     = contains(["PREMIUM", "STANDARD"], var.network_tier)
+    error_message = "network_tier must be either 'PREMIUM' or 'STANDARD'."
+  }
+}
+
 variable "network" {
   type        = string
   description = "Name or self-link of the VPC network"
