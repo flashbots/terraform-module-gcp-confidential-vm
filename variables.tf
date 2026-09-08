@@ -104,6 +104,7 @@ variable "vms" {
     network                          = string
     subnetwork                       = string
     external_ip                      = optional(string)
+    network_tier                     = optional(string, "PREMIUM")
     metadata                         = optional(map(string), {})
     service_account = optional(object({
       email  = optional(string)
@@ -125,6 +126,7 @@ variable "vms" {
         data_disk_size_gb = 2250
         network           = "base"
         subnetwork        = "base-asia-northeast1"
+        network_tier      = "STANDARD"
         firewall_ingress_rules = {
           "22 \| tcp \| ssh"     = ["0.0.0.0/0"]
           "30303 \| tcp \| p2p"  = ["0.0.0.0/0"]
@@ -137,4 +139,11 @@ variable "vms" {
     }
     ```
   EOT
+
+  validation {
+    condition = alltrue([
+      for vm in values(var.vms) : contains(["PREMIUM", "STANDARD"], vm.network_tier)
+    ])
+    error_message = "Each VM network_tier must be either 'PREMIUM' or 'STANDARD'."
+  }
 }

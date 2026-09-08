@@ -170,6 +170,7 @@ module "cvm" {
   network                          = each.value.network
   subnetwork                       = each.value.subnetwork
   external_ip                      = each.value.external_ip
+  network_tier                     = each.value.network_tier
   metadata                         = each.value.metadata
   service_account                  = each.value.service_account
 
