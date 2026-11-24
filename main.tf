@@ -25,11 +25,12 @@ locals {
   # GCS images: https://storage.googleapis.com/...
   images_from_gcs = { for k, v in local.images_to_create : k => v if startswith(v.source_uri, "https://storage.googleapis.com/") }
 
-  # Remote URL images: http:// or https:// (excluding GCS URLs)
-  images_from_url = { for k, v in local.images_to_create : k => v if(startswith(v.source_uri, "http://") || startswith(v.source_uri, "https://")) && !startswith(v.source_uri, "https://storage.googleapis.com/") }
+  # Remote URL images: http://, https:// (excluding GCS URLs) or s3:// (private
+  # Cloudflare R2 bucket)
+  images_from_url = { for k, v in local.images_to_create : k => v if can(regex("^(https?|s3)://", v.source_uri)) && !startswith(v.source_uri, "https://storage.googleapis.com/") }
 
   # Local file images: everything else (local paths)
-  images_from_local = { for k, v in local.images_to_create : k => v if !startswith(v.source_uri, "http://") && !startswith(v.source_uri, "https://") }
+  images_from_local = { for k, v in local.images_to_create : k => v if !can(regex("^(https?|s3)://", v.source_uri)) }
 
   # Images that need to be uploaded to GCS (local files + downloaded URLs)
   images_to_upload = merge(
@@ -50,12 +51,27 @@ resource "null_resource" "download_image" {
     url = each.value.source_uri
   }
 
+  # s3:// sources: sign a GET URL with the CLOUDFLARE_API_TOKEN environment
+  # variable right before the download, so only applies that download need it.
   provisioner "local-exec" {
     command = <<-EOT
+      set -e
       mkdir -p "${local.download_dir}"
       echo "Downloading ${each.value.source_uri}..."
-      curl -fSL --progress-bar -o "${local.download_dir}/${each.key}.tar.gz" "${each.value.source_uri}"
+      %{if startswith(each.value.source_uri, "s3://")~}
+      url=$(python3 "${path.module}/scripts/r2-presign.py" "${each.value.source_uri}" "${coalesce(var.r2_account_id, "-")}" 3600)
+      %{else~}
+      url="${each.value.source_uri}"
+      %{endif~}
+      curl -fSL --progress-bar -o "${local.download_dir}/${each.key}.tar.gz" "$url"
     EOT
+  }
+
+  lifecycle {
+    precondition {
+      condition     = !startswith(each.value.source_uri, "s3://") || var.r2_account_id != null
+      error_message = "Image \"${each.key}\" has an s3:// source_uri, but r2_account_id is not set."
+    }
   }
 }
 

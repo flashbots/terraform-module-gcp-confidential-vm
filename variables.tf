@@ -32,6 +32,8 @@ variable "images" {
                     Auto-detected based on URI scheme:
                     - https://storage.googleapis.com/bucket/path - GCS URI (used directly)
                     - https://... or http://... - Remote URL (downloaded then uploaded to GCS)
+                    - s3://<bucket>/<key> - Object in a private Cloudflare R2 bucket
+                      (downloaded with a signed URL then uploaded to GCS; see r2_account_id)
                     - /path/to/file - Local file path (uploaded to GCS)
     - source_image: Reference an existing GCP image. Accepts any format supported by
                     google_compute_instance boot_disk (self-link, image name, family, etc.)
@@ -66,6 +68,21 @@ variable "images" {
     ])
     error_message = "Each image must set exactly one of 'source_uri' or 'source_image'."
   }
+}
+
+variable "r2_account_id" {
+  type        = string
+  description = <<-EOT
+    Cloudflare account ID of the R2 buckets in `s3://<bucket>/<key>` image
+    sources. Required when any image uses such a source.
+
+    The credentials come from the `CLOUDFLARE_API_TOKEN` environment variable
+    (the same one the Cloudflare provider reads); the token needs read access
+    to the bucket. When an image is downloaded, `scripts/r2-presign.py` (needs
+    `python3`) signs a GET URL valid for 1 hour. The token is not stored in the
+    configuration or the state, and plans don't need it.
+  EOT
+  default     = null
 }
 
 variable "create_empty_secure_boot_keys" {
