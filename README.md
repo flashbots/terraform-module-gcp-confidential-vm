@@ -22,8 +22,9 @@ Before using this module, you must:
 
 - Have a GCP project with Compute Engine API enabled;
 - Prepare your VM image as a `.tar.gz` file compatible with GCP, or reference a pre-existing GCP image;
-- Provide the image via one of: local path, GCS URI, remote HTTP(S) URL, or existing GCP image reference;
-- Have `curl` installed locally (required only if downloading images from remote HTTP(S) URLs).
+- Provide the image via one of: local path, GCS URI, remote HTTP(S) URL, `s3://` URL of a private Cloudflare R2 bucket, or existing GCP image reference;
+- Have `curl` installed locally (required only if downloading images from remote HTTP(S) or `s3://` URLs);
+- Have `python3` installed locally and `CLOUDFLARE_API_TOKEN` set (required only when downloading images from `s3://` URLs).
 
 ## Important Notes
 
@@ -38,25 +39,26 @@ Refer to the [examples](./examples/) directory for detailed configuration exampl
 ## Requirements
 
 | Name | Version |
-|------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.1 |
+| ---- | ------- |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.2 |
 | <a name="requirement_google"></a> [google](#requirement\_google) | >= 7.0.0 |
 | <a name="requirement_null"></a> [null](#requirement\_null) | >= 3.0.0 |
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_create_empty_secure_boot_keys"></a> [create\_empty\_secure\_boot\_keys](#input\_create\_empty\_secure\_boot\_keys) | Create empty secure boot keys for TDX images | `bool` | `true` | no |
 | <a name="input_create_image_bucket"></a> [create\_image\_bucket](#input\_create\_image\_bucket) | Whether to create a new GCS bucket for storing VM images | `bool` | `true` | no |
 | <a name="input_image_bucket_name"></a> [image\_bucket\_name](#input\_image\_bucket\_name) | Name of the GCS bucket for storing VM images. Used both for creating new bucket or referencing existing one | `string` | n/a | yes |
-| <a name="input_images"></a> [images](#input\_images) | Map of image names to their source.<br/><br/>Each image must set exactly one of:<br/>- source\_uri:   Create a new compute image from a raw disk file.<br/>                Auto-detected based on URI scheme:<br/>                - https://storage.googleapis.com/bucket/path - GCS URI (used directly)<br/>                - https://... or http://... - Remote URL (downloaded then uploaded to GCS)<br/>                - /path/to/file - Local file path (uploaded to GCS)<br/>- source\_image: Reference an existing GCP image. Accepts any format supported by<br/>                google\_compute\_instance boot\_disk (self-link, image name, family, etc.)<br/><br/>Example:<pre>terraform<br/>images = {<br/>  # Existing image in GCS (will create a compute image)<br/>  "buildernet-v2-0-0-rc4" = {<br/>    source_uri = "https://storage.googleapis.com/buildernet-images/buildernet-gcp_2.0.0-rc4-88fd8d54-import.tar.gz"<br/>  }<br/>  # Local file (will be uploaded to GCS and create a compute image)<br/>  "buildernet-v2-0-1" = {<br/>    source_uri = "/path/to/local/image.tar.gz"<br/>  }<br/>  # Remote URL (will be downloaded, uploaded to GCS, and create a compute image)<br/>  "buildernet-v2-2-0" = {<br/>    source_uri = "https://downloads.buildernet.org/buildernet-images/v2.2.0/buildernet-gcp_2.2.0-9818c3f0-import.tar.gz"<br/>  }<br/>  # Pre-existing GCP image (used directly, no resources created)<br/>  "buildernet-v2-3-0" = {<br/>    source_image = "projects/my-project/global/images/buildernet-v2-3-0"<br/>  }<br/>}</pre> | <pre>map(object({<br/>    source_uri   = optional(string)<br/>    source_image = optional(string)<br/>  }))</pre> | n/a | yes |
+| <a name="input_images"></a> [images](#input\_images) | Map of image names to their source.<br/><br/>Each image must set exactly one of:<br/>- source\_uri:   Create a new compute image from a raw disk file.<br/>                Auto-detected based on URI scheme:<br/>                - https://storage.googleapis.com/bucket/path - GCS URI (used directly)<br/>                - https://... or http://... - Remote URL (downloaded then uploaded to GCS)<br/>                - s3://<bucket>/<key> - Object in a private Cloudflare R2 bucket<br/>                  (downloaded with a signed URL then uploaded to GCS; see r2\_account\_id)<br/>                - /path/to/file - Local file path (uploaded to GCS)<br/>- source\_image: Reference an existing GCP image. Accepts any format supported by<br/>                google\_compute\_instance boot\_disk (self-link, image name, family, etc.)<br/><br/>Example:<pre>terraform<br/>images = {<br/>  # Existing image in GCS (will create a compute image)<br/>  "buildernet-v2-0-0-rc4" = {<br/>    source_uri = "https://storage.googleapis.com/buildernet-images/buildernet-gcp_2.0.0-rc4-88fd8d54-import.tar.gz"<br/>  }<br/>  # Local file (will be uploaded to GCS and create a compute image)<br/>  "buildernet-v2-0-1" = {<br/>    source_uri = "/path/to/local/image.tar.gz"<br/>  }<br/>  # Remote URL (will be downloaded, uploaded to GCS, and create a compute image)<br/>  "buildernet-v2-2-0" = {<br/>    source_uri = "https://downloads.buildernet.org/buildernet-images/v2.2.0/buildernet-gcp_2.2.0-9818c3f0-import.tar.gz"<br/>  }<br/>  # Pre-existing GCP image (used directly, no resources created)<br/>  "buildernet-v2-3-0" = {<br/>    source_image = "projects/my-project/global/images/buildernet-v2-3-0"<br/>  }<br/>}</pre> | <pre>map(object({<br/>    source_uri   = optional(string)<br/>    source_image = optional(string)<br/>  }))</pre> | n/a | yes |
 | <a name="input_project"></a> [project](#input\_project) | The GCP project ID where all resources will be created | `string` | n/a | yes |
+| <a name="input_r2_account_id"></a> [r2\_account\_id](#input\_r2\_account\_id) | Cloudflare account ID of the R2 buckets in `s3://<bucket>/<key>` image<br/>sources. Required when any image uses such a source.<br/><br/>The credentials come from the `CLOUDFLARE_API_TOKEN` environment variable<br/>(the same one the Cloudflare provider reads); the token needs read access<br/>to the bucket. When an image is downloaded, `scripts/r2-presign.py` (needs<br/>`python3`) signs a GET URL valid for 1 hour. The token is not stored in the<br/>configuration or the state, and plans don't need it. | `string` | `null` | no |
 | <a name="input_region"></a> [region](#input\_region) | The GCP region where resources will be created | `string` | n/a | yes |
 | <a name="input_secure_boot_keys"></a> [secure\_boot\_keys](#input\_secure\_boot\_keys) | Custom secure boot keys in base64 format. Only used if create\_empty\_secure\_boot\_keys is false | <pre>object({<br/>    pk   = optional(string)<br/>    keks = optional(string)<br/>    dbs  = optional(string)<br/>    dbxs = optional(string)<br/>  })</pre> | `{}` | no |
 | <a name="input_vms"></a> [vms](#input\_vms) | Map of VM configurations keyed by VM name.<br/><br/>Example:<pre>terraform<br/>vms = {<br/>  "buildernet-flashbots-gcp-ap-01" = {<br/>    zone              = "asia-northeast1-b"<br/>    image_name        = "buildernet-v2-0-0-rc4"<br/>    machine_type      = "c3-standard-44"<br/>    data_disk_size_gb = 2250<br/>    network           = "base"<br/>    subnetwork        = "base-asia-northeast1"<br/>    network_tier      = "STANDARD"<br/>    firewall_ingress_rules = {<br/>      "22 \| tcp \| ssh"     = ["0.0.0.0/0"]<br/>      "30303 \| tcp \| p2p"  = ["0.0.0.0/0"]<br/>      "30303 \| udp \| p2p"  = ["0.0.0.0/0"]<br/>    }<br/>    firewall_egress_rules = {<br/>      "0 \| all" = ["0.0.0.0/0"]<br/>    }<br/>  }<br/>}</pre> | <pre>map(object({<br/>    zone                             = string<br/>    image_name                       = string<br/>    machine_type                     = optional(string, "c3-standard-44")<br/>    min_cpu_platform                 = optional(string)<br/>    enable_secure_boot               = optional(bool, false)<br/>    enable_vtpm                      = optional(bool, false)<br/>    enable_display                   = optional(bool, true)<br/>    os_disk_size_gb                  = optional(number)<br/>    os_disk_type                     = optional(string, "pd-ssd")<br/>    data_disk_size_gb                = number<br/>    data_disk_type                   = optional(string, "pd-ssd")<br/>    data_disk_provisioned_iops       = optional(number)<br/>    data_disk_provisioned_throughput = optional(number)<br/>    data_disk_device_name            = optional(string, "persistent")<br/>    network                          = string<br/>    subnetwork                       = string<br/>    external_ip                      = optional(string)<br/>    network_tier                     = optional(string, "PREMIUM")<br/>    metadata                         = optional(map(string), {})<br/>    service_account = optional(object({<br/>      email  = optional(string)<br/>      scopes = optional(list(string), ["cloud-platform"])<br/>    }))<br/>    firewall_ingress_rules = optional(map(list(string)), {})<br/>    firewall_egress_rules  = optional(map(list(string)), {})<br/>  }))</pre> | n/a | yes |
@@ -64,7 +66,7 @@ Refer to the [examples](./examples/) directory for detailed configuration exampl
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_image_bucket"></a> [image\_bucket](#output\_image\_bucket) | Name of the GCS bucket used for VM images |
 | <a name="output_images"></a> [images](#output\_images) | Map of all images with their reference and whether they are managed by this module |
 | <a name="output_vm_details"></a> [vm\_details](#output\_vm\_details) | VM details |
@@ -81,11 +83,36 @@ The source type is auto-detected based on the URI scheme:
 |------------|----------|
 | `https://storage.googleapis.com/bucket/path` | GCS URI - used directly, no upload needed |
 | `https://...` or `http://...` | Remote URL - downloaded via `curl`, then uploaded to GCS |
+| `s3://<bucket>/<key>` | Object in a private Cloudflare R2 bucket - downloaded via `curl` with a signed URL, then uploaded to GCS |
 | `/path/to/file` | Local file path - uploaded to GCS |
 
 Local files are content-addressed: the SHA-256 hash of the file is included in the GCS object name, so changing the file content triggers re-upload and image re-creation.
 
-**Note:** When using HTTP(S) URLs, the image is downloaded to `.terraform/image-downloads/` within the module directory using `curl`, then uploaded to GCS. Ensure you have sufficient disk space for large images.
+**Note:** When using HTTP(S) or `s3://` URLs, the image is downloaded to `.terraform/image-downloads/` within the module directory using `curl`, then uploaded to GCS. Ensure you have sufficient disk space for large images.
+
+#### Private Cloudflare R2 buckets (`s3://`)
+
+Set `r2_account_id` in the module call and export a Cloudflare API token with read access to the bucket before running terraform, as for the Cloudflare provider:
+
+```bash
+export CLOUDFLARE_API_TOKEN=...
+terraform apply
+```
+
+```terraform
+module "confidential_vm" {
+  # ...
+  r2_account_id = "<cloudflare-account-id>"
+
+  images = {
+    "image-v1-2-3" = {
+      source_uri = "s3://<bucket>/images/v1.2.3/image-gcp_1.2.3-import.tar.gz"
+    }
+  }
+}
+```
+
+When an image is downloaded, `scripts/r2-presign.py` (Python standard library only) signs a GET URL valid for 1 hour, and `curl` downloads it. The R2 S3 credentials are derived from the token: the access key ID is the token ID, looked up with one Cloudflare API call, and the secret is the SHA-256 hash of the token. The token and the signed URL are not stored in the configuration or the state. Plans, and applies that download nothing, don't need the token.
 
 ### `source_image` — Reference a pre-existing GCP image
 
